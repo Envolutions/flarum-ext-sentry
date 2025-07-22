@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of fof/sentry
  *
@@ -9,8 +11,6 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace FoF\Sentry\Content;
 
 use Flarum\Frontend\Document;
@@ -19,11 +19,13 @@ use Flarum\Settings\SettingsRepositoryInterface;
 
 class SentryJavaScript
 {
-    public function __construct(private SettingsRepositoryInterface $settings, private UrlGenerator $url) {}
+    public function __construct(private SettingsRepositoryInterface $settings, private UrlGenerator $url)
+    {
+    }
 
     public function __invoke(Document $document)
     {
-        if (! ((int) $this->settings->get('fof-sentry.javascript'))) {
+        if (!((int) $this->settings->get('fof-sentry.javascript'))) {
             return;
         }
 

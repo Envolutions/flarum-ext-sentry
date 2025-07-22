@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of fof/sentry
  *
@@ -8,8 +10,6 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-declare(strict_types=1);
 
 namespace FoF\Sentry\Reporters;
 
@@ -23,19 +23,24 @@ use Throwable;
 
 class SentryReporter implements Reporter
 {
-    public function __construct(protected LoggerInterface $logger, private Container $container) {}
+    public function __construct(protected LoggerInterface $logger, private Container $container)
+    {
+    }
 
     public function report(Throwable $error): void
     {
         /** @var HubInterface $hub */
         $hub = $this->container->make('sentry');
+        if ($hub === null) {
+            return;
+        }
 
         if ($this->container->bound('sentry.request')) {
             $hub->configureScope(function (Scope $scope) {
                 $request = $this->container->make('sentry.request');
                 $user = RequestUtil::getActor($request);
 
-                if (! $user->isGuest() && $user->id !== 0) {
+                if ($user->id !== 0 && !$user->isGuest()) {
                     $data = $user->only('id', 'username');
 
                     // Only send email if enabled in settings

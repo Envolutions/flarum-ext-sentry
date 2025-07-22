@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of fof/sentry
  *
@@ -9,12 +11,9 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace FoF\Sentry\Formatters;
 
 use Flarum\Foundation\ErrorHandling\HandledError;
-use Flarum\Foundation\ErrorHandling\HttpFormatter;
 use Flarum\Foundation\ErrorHandling\ViewFormatter;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -22,7 +21,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-class SentryFormatter extends ViewFormatter implements HttpFormatter
+class SentryFormatter extends ViewFormatter
 {
     public function __construct(private ViewFormatter $formatter)
     {
@@ -38,7 +37,7 @@ class SentryFormatter extends ViewFormatter implements HttpFormatter
         $settings = resolve(SettingsRepositoryInterface::class);
         $sentry = resolve('sentry');
 
-        if ($sentry === null || ! $error->shouldBeReported() || $sentry->getLastEventId() === null || ! ((int) $settings->get('fof-sentry.user_feedback'))) {
+        if ($sentry === null || !$error->shouldBeReported() || $sentry->getLastEventId() === null || !((int) $settings->get('fof-sentry.user_feedback'))) {
             return $response;
         }
 
