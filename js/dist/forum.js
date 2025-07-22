@@ -18682,7 +18682,7 @@ var __webpack_exports__ = {};
 (() => {
 "use strict";
 /*!******************!*\
-  !*** ./forum.js ***!
+  !*** ./forum.ts ***!
   \******************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _src_forum__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./src/forum */ "./src/forum/index.js");

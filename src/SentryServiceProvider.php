@@ -46,8 +46,25 @@ class SentryServiceProvider extends AbstractServiceProvider
 
     protected static $transactionStack = [];
 
-    public function register()
+    public function register(): void
     {
+        // Register empty config containers that can be extended
+        $this->container->singleton('fof.sentry.backend.config', function () {
+            return [];
+        });
+
+        $this->container->singleton('fof.sentry.frontend.config', function () {
+            return [];
+        });
+
+        $this->container->singleton('fof.sentry.measurements', function () {
+            return $this->measurements;
+        });
+
+        $this->container->singleton('sentry.release', function () {
+            return Application::VERSION;
+        });
+
         $this->container->singleton(HubInterface::class, function ($container) {
             /** @var SettingsRepositoryInterface $settings */
             $settings = $container->make(SettingsRepositoryInterface::class);
@@ -56,9 +73,21 @@ class SentryServiceProvider extends AbstractServiceProvider
             $url = $container->make(UrlGenerator::class);
 
             $dsn = $settings->get('fof-sentry.dsn_backend');
-            $environment = empty($settings->get('fof-sentry.environment')) ? str_replace(['https://', 'http://'], '', $url->to('forum')->base()) : $settings->get('fof-sentry.environment');
+
+            /** @var string $release */
+            $release = $container->make('sentry.release');
+
+            // Use custom environment if set, otherwise use the setting or default
+            $environment = $settings->get('fof-sentry.environment');
+            if ($container->bound('fof.sentry.environment')) {
+                $environment = $container->make('fof.sentry.environment');
+            }
+            if (empty($environment)) {
+                $environment = str_replace(['https://', 'http://'], '', $url->to('forum')->base());
+            }
+
             $performanceMonitoring = (int) $settings->get('fof-sentry.monitor_performance');
-            $profilesSampleRate = (int) $settings->get('fof-sentry.profile_rate', 0);
+            $profilesSampleRate = (int) $settings->get('fof-sentry.profile_rate');
 
             if (empty($dsn)) {
                 $dsn = $settings->get('fof-sentry.dsn');
@@ -70,14 +99,23 @@ class SentryServiceProvider extends AbstractServiceProvider
             $tracesSampleRate = round(max(0, min(100, $performanceMonitoring))) / 100;
             $profilesSampleRate = round(max(0, min(100, $profilesSampleRate))) / 100;
 
-            init([
+            // Base configuration
+            $config = [
                 'dsn'                   => $dsn,
                 'in_app_include'        => [$paths->base],
                 'traces_sample_rate'    => $tracesSampleRate,
                 'profiles_sample_rate'  => $profilesSampleRate,
                 'environment'           => $environment,
-                'release'               => Application::VERSION,
-            ]);
+                'release'               => $release,
+            ];
+
+            // Merge with custom config
+            if ($container->bound('fof.sentry.backend.config')) {
+                $customConfig = $container->make('fof.sentry.backend.config');
+                $config = array_merge($config, $customConfig);
+            }
+
+            init($config);
 
             return SentrySdk::getCurrentHub();
         });
@@ -98,8 +136,8 @@ class SentryServiceProvider extends AbstractServiceProvider
             $hub = $this->container->make(HubInterface::class);
 
             $hub->configureScope(function (Scope $scope) use ($config) {
-                $scope->setTag('offline', Arr::get($config, 'offline', 'false'));
-                $scope->setTag('debug', Arr::get($config, 'debug', true));
+                $scope->setTag('offline', $this->booleanToString(Arr::get($config, 'offline', false)));
+                $scope->setTag('debug', $this->booleanToString(Arr::get($config, 'debug', true)));
                 $scope->setTag('flarum', Application::VERSION);
 
                 if ($this->container->bound('sentry.stack')) {
@@ -158,7 +196,7 @@ class SentryServiceProvider extends AbstractServiceProvider
         );
     }
 
-    public function boot(SettingsRepositoryInterface $settings)
+    public function boot(SettingsRepositoryInterface $settings): void
     {
         set_error_handler([$this, 'handleError']);
 
@@ -171,7 +209,10 @@ class SentryServiceProvider extends AbstractServiceProvider
 
             $transaction = $hub->startTransaction(new TransactionContext('flarum'));
 
-            foreach ($this->measurements as $measurement) {
+            // Use the measurements from the container
+            $measurements = $this->container->make('fof.sentry.measurements');
+
+            foreach ($measurements as $measurement) {
                 /** @var Measure $measure */
                 $measure = new $measurement($transaction, $this->container);
                 if ($span = $measure->handle()) {
@@ -184,7 +225,7 @@ class SentryServiceProvider extends AbstractServiceProvider
     }
 
     /** @throws ErrorException */
-    public function handleError($level, $message, $file = '', $line = 0)
+    public function handleError($level, $message, $file = '', $line = 0): ?bool
     {
         // ignore STMT_PREPARE errors because Eloquent automatically tries reconnecting
         if (str_contains($message, 'STMT_PREPARE packet')) {
@@ -203,6 +244,14 @@ class SentryServiceProvider extends AbstractServiceProvider
                 $reporter->report($error);
             }
         }
+
+        return null;
+    }
+
+    /** A simple helper to convert a boolean to a string. */
+    public function booleanToString(bool $value): string
+    {
+        return $value ? 'true' : 'false';
     }
 
     public function __destruct()

@@ -15,6 +15,7 @@ namespace FoF\Sentry\Formatters;
 
 use Flarum\Foundation\ErrorHandling\HandledError;
 use Flarum\Foundation\ErrorHandling\ViewFormatter;
+use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -42,7 +43,7 @@ class SentryFormatter extends ViewFormatter
         }
 
         $dsn = $settings->get('fof-sentry.dsn');
-        $user = resolve('sentry.request')->getAttribute('actor');
+        $user = RequestUtil::getActor(resolve('sentry.request'));
         $locale = $this->translator->getLocale();
         $eventId = $sentry->getLastEventId();
         $userData = ($user !== null && $user->id != 0) ?

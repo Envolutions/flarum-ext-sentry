@@ -221,7 +221,7 @@ var __webpack_exports__ = {};
 (() => {
 "use strict";
 /*!******************!*\
-  !*** ./admin.js ***!
+  !*** ./admin.ts ***!
   \******************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
