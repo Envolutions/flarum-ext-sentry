@@ -24,10 +24,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class SentryFormatter extends ViewFormatter
 {
-    public function __construct(private ViewFormatter $formatter)
+    public function __construct(private readonly ViewFormatter $formatter)
     {
-        $this->view = resolve(ViewFactory::class);
+        $this->settings = resolve(SettingsRepositoryInterface::class);
         $this->translator = resolve(TranslatorInterface::class);
+        $this->view = resolve(ViewFactory::class);
+
+        parent::__construct($this->view, $this->translator, $this->settings);
     }
 
     public function format(HandledError $error, Request $request): Response

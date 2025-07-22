@@ -20,8 +20,16 @@ use Sentry\Tracing\SpanContext;
 
 class MeasurePerformanceMiddleware implements Middleware
 {
-    public function __construct(protected string $frontend, protected Span $transaction)
+    /** @var Span */
+    protected $transaction;
+
+    /** @var string */
+    protected $frontend;
+
+    public function __construct(string $frontend, Span $transaction)
     {
+        $this->transaction = $transaction;
+        $this->frontend = $frontend;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

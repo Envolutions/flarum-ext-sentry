@@ -18,8 +18,16 @@ use Sentry\Tracing\Transaction;
 
 abstract class Measure implements Contract
 {
-    public function __construct(protected Transaction $transaction, protected Container $container)
+    /** @var Transaction */
+    protected $transaction;
+
+    /** @var Container */
+    protected $container;
+
+    public function __construct(Transaction $transaction, Container $container)
     {
+        $this->transaction = $transaction;
+        $this->container = $container;
     }
 
     public static function name(): string
