@@ -26,11 +26,11 @@ class SentryFormatter extends ViewFormatter
 {
     public function __construct(private readonly ViewFormatter $formatter)
     {
-        $this->settings = resolve(SettingsRepositoryInterface::class);
-        $this->translator = resolve(TranslatorInterface::class);
-        $this->view = resolve(ViewFactory::class);
-
-        parent::__construct($this->view, $this->translator, $this->settings);
+        parent::__construct(
+            resolve(ViewFactory::class),
+            resolve(TranslatorInterface::class),
+            resolve(SettingsRepositoryInterface::class)
+        );
     }
 
     public function format(HandledError $error, Request $request): Response
